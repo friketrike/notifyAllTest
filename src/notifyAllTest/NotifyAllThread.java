@@ -1,56 +1,60 @@
 package notifyAllTest;
 
 public class NotifyAllThread implements Runnable {
-	private static enum Info {CREATE, SLEEP15, SLEEP1, NOTIFYING, NOTIFIED, WAIT, CHANGE};
-	private MyMonitorTestAll myMon = new MyMonitorTestAll();
-	private static boolean someCondition = true;
+	protected static enum Info {CREATE, CHECKITOUT, WASTE1, NOTIFYING, NOTIFIED, WAIT, CHANGE};
+	protected MyMonitorTestAll myMon = new MyMonitorTestAll();
+	protected static boolean someBool = true;
 	@Override
 	public void run() {
-		
-		print(Info.CREATE, 10);
+		// Thread 0 goes straight to wait in a while loop with a boolean=t that won't let it pass
+		// Thread 1 waits and upon being notified, sets boolean=f (atomically) stalls 1 sec then notifyAll()
+		// Thread 2 stalls 1 second then notifiesAll then waits
+		print(Info.CREATE, 12);
 		if (Thread.currentThread().getName().contains("2")){
-			print(Info.SLEEP15, 12);
-			try{Thread.sleep(1500);}catch(InterruptedException e){}
-			print(Info.NOTIFYING, 14);
+			print(Info.WASTE1, 14);
+			wasteTime(1000); // avoid sleep, drink coffee, as sleep is another brand of yielding. Active wait function
+			print(Info.NOTIFYING, 16);
 			myMon.myNotifyAll();
-			print(Info.WAIT, 16);
+			print(Info.CHECKITOUT, 18);
+			print(Info.WAIT, 19);
 			myMon.myWait();
-			print(Info.NOTIFIED, 18);
+			print(Info.NOTIFIED, 21);
 		}
-		else{
+		else{ // HERE! if 2 signals and 0 gets notified first (half of the time, you can see 1 gets notified right after
 			if(Thread.currentThread().getName().contains("1")){ // thread 1 gets stalled here
-				print(Info.SLEEP1, 22);
-				try{Thread.sleep(1000);}catch(InterruptedException e){}
-				print(Info.WAIT, 24);
+				print(Info.WAIT, 29);
 				myMon.myWait();
-				print(Info.NOTIFIED, 26);
+				print(Info.NOTIFIED, 27);
 			}
 			else{ // Thread 0 goes here
-				while(Thread.currentThread().getName().contains("0") && someCondition){
-					print(Info.WAIT, 30);
+				while(Thread.currentThread().getName().contains("0") && someBool){
+					print(Info.WAIT, 31);
 					myMon.myWait();
-					print(Info.NOTIFIED, 32);
-					//print(Info.NOTIFYING);
-					//myMon.myNotifyAll();
+					print(Info.NOTIFIED, 33);
 				}
 			}
 		}
-		someCondition = false;
-		print(Info.CHANGE, 39);
-		print(Info.NOTIFYING, 40);
-		myMon.myNotifyAll();
+		
+		if(Thread.currentThread().getName().contains("1")){
+			myMon.setBool2False(this); // atomic modification of the boolean
+			print(Info.WASTE1, 40);
+			wasteTime(1000);
+			print(Info.NOTIFYING, 42);
+			myMon.myNotifyAll();
+		}
 	}
 	
-	private void print(Info status, int line){
+	// Just so the rest of the thread is a bit easier to read, put these long printlns here
+	protected void print(Info status, int line){
 		switch(status){
 			case CREATE:		
 				System.out.println(Thread.currentThread().getName()+" created @line: "+line);
 				break;
-			case SLEEP15:
-				System.out.println(Thread.currentThread().getName()+" sleeping 1.5 sec so everyone else is created and waiting @line: "+line);
+			case CHECKITOUT:
+				System.out.println("HERE, if 0 gets woken up first (50/50) you will see 1\n\twake up immediately with no other notify preceding it");
 				break;
-			case SLEEP1:
-				System.out.println("T 1 will sleep so T 0, who cannot run because of someCondition, gets woken up @line: "+line);
+			case WASTE1:
+				System.out.println(Thread.currentThread().getName()+" waste time, 1 sec @line: "+line);
 				break;
 			case NOTIFYING:
 				System.out.println(Thread.currentThread().getName()+" sending notifyAll @line: "+line);
@@ -66,8 +70,10 @@ public class NotifyAllThread implements Runnable {
 				break;
 			default:
 				System.out.flush();	// make sure everything is out as fast as possible (should be by default)
-		}
-		
+		}	
 	}
-	
+	protected static void wasteTime(long millis){	
+		long start = System.currentTimeMillis();
+		while((System.currentTimeMillis()-start)<millis);
+	}
 }

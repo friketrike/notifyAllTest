@@ -13,4 +13,10 @@ public class MyMonitorTestAll {
 			mutex.notifyAll();
 		}
 	}
+	public void setBool2False(NotifyAllThread caller){
+		synchronized(mutex){
+			caller.print(NotifyAllThread.Info.CHANGE, 118);
+			NotifyAllThread.someBool = false;
+		}
+	}
 }

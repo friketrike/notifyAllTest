@@ -15,7 +15,7 @@ public class NotifyAllTestDriver {
 				ta[i].join();
 			}catch(InterruptedException e){}
 		}
-		System.out.println("Done");
+		System.out.println("THERE, 3 threads got notified by 2 notifyAll()\nDone!");
 	}
 
 }
